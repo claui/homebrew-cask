@@ -27,17 +27,58 @@ module Cask::Scopes
     end
 
     def all_tokens
-      cask_tokens = all_tapped_cask_dirs.map { |d| Dir.glob d.join('*.rb') }.flatten
-      cask_tokens.map { |c|
-        # => "/usr/local/Library/Taps/caskroom/example-tap/Casks/example.rb"
-        c.sub!(/\.rb$/, '')
-        # => ".../example"
-        c = c.split('/').last 4
-        # => ["caskroom", "example-tap", "Casks", "example"]
-        c.delete_at(-2)
-        # => ["example-tap", "example"]
-        c = c.join '/'
+      cask_tokens = all_tapped_cask_dirs \
+        .map { |d| Dir.glob d.join('*.rb') } \
+        .flatten
+
+      cask_tokens.map(&method(:qualified_token_from))
+    end
+
+    def all_as_proxies
+      all_tokens.map do |qualified_token|
+        resolved = nil
+        Cask::Proxy.new(qualified_token) do
+          odebug "Resolving Cask proxy: #{ qualified_token }" unless resolved
+          resolved ||= Cask.load(qualified_token)
+        end
+      end
+    end
+
+    def all_named_casks
+      all_tapped_cask_dirs.map(&method(:all_named_casks_from_dir)).flatten
+    end
+
+    def all_named_casks_from_dir(directory)
+      matching_tokens = search_for_named_cask_tokens(directory)
+      matching_tokens.lines.map { |token| Cask.load(token.chomp) }
+    end
+
+    def search_for_named_cask_tokens(directory)
+      command = '/usr/bin/egrep'
+      pattern = /name(\s+|\()\s*['\[]/
+      options = {
+        :args => ['-lr', '--include', '*.rb', pattern.source, directory.to_s],
+        :must_succeed => false
       }
+      result = Cask::SystemCommand.run(command, options)
+      status = result.exit_status
+      if (status >= 2)
+        raise CaskCommandFailedError.new(command, result.stdout, status)
+      else
+        result.stdout
+      end
+    end
+
+    def qualified_token_from(filename)
+      # => "/usr/local/Library/Taps/caskroom/example-tap/Casks/example.rb"
+      c = filename.dup
+      c.sub!(/\.rb$/, '')
+      # => ".../example"
+      c = c.split('/').last 4
+      # => ["caskroom", "example-tap", "Casks", "example"]
+      c.delete_at(-2)
+      # => ["caskroom", "example-tap", "example"]
+      c = c.join '/'
     end
 
     def installed

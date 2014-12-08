@@ -132,22 +132,11 @@ class Cask::CLI
   end
 
   def self.nice_listing(cask_list)
-    cask_taps = {}
-    cask_list.each do |c|
-      user, repo, token = c.split '/'
-      repo.sub!(/^homebrew-/i, '')
-      cask_taps[token] ||= []
-      cask_taps[token].push "#{user}/#{repo}"
-    end
-    list = []
-    cask_taps.each do |token,taps|
-      if taps.length == 1
-        list.push token
-      else
-        taps.each { |r| list.push [r,token].join '/' }
-      end
-    end
-    list.sort
+    results = []
+    Cask::QualifiedToken.generate_unique_tokens!(cask_list,
+      nil) { |_, unique_token | results.push unique_token }
+
+    results.sort
   end
 
   def self.parser

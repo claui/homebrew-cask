@@ -22,8 +22,10 @@ require 'cask/locations'
 require 'cask/options'
 require 'cask/pkg'
 require 'cask/pretty_listing'
+require 'cask/proxy'
 require 'cask/qualified_token'
 require 'cask/scopes'
+require 'cask/search'
 require 'cask/source'
 require 'cask/staged'
 require 'cask/system_command'
@@ -158,6 +160,11 @@ class Cask
 
   def installed?
     staged_path.exist?
+  end
+
+  def qualified_token
+    full_path_name = self.class.path(token).to_s
+    self.class.qualified_token_from(full_path_name)
   end
 
   def to_s

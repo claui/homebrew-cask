@@ -7,8 +7,16 @@ class Cask::CLI::Base
     true
   end
 
-  def self.cask_tokens_from(args)
+  def self.remove_options(args)
     args.reject { |a| a.chars.first == '-' }
+  end
+
+  # This method is deprecated.
+  # It has been renamed to `remove_options` because the command line
+  # can contain search terms that refer to other fields than
+  # just cask tokens.
+  def self.cask_tokens_from(args)
+    remove_options(args)
   end
 
   def self.help

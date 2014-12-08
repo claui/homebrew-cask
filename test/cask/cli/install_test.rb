@@ -56,7 +56,7 @@ describe Cask::CLI::Install do
         Cask::CLI::Install.run('googlechrome')
       rescue CaskError; end
     end
-    err.must_match %r{No available Cask for googlechrome\. Did you mean:\ngoogle-chrome}
+    err.must_match %r{No available Cask for googlechrome\. Did you mean: google-chrome}
   end
 
   it "returns multiple suggestions for a Cask fragment" do
