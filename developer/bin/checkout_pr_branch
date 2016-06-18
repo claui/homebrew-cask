@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+# checkout_pr_branch
+#
+# Fetch and check out a remote branch temporarily
+#
+
+###
+### functions
+###
+
+cd_to_project_root () {
+    local script_dir="$(/usr/bin/dirname "$0")"
+    cd "$script_dir"
+    local git_root="$(git rev-parse --show-toplevel)"
+    if [[ -z "$git_root" ]]; then
+        die "ERROR: Could not find git project root"
+    fi
+    cd "$git_root"
+}
+
+is_git_dirty () {
+    [[ $(git status 2>/dev/null | tail -n1 | cut -c 1-17) \
+        != "nothing to commit" ]]
+}
+
+warn () {
+    local message="$*"
+    message="${message//\\t/$'\011'}"
+    message="${message//\\n/$'\012'}"
+    message="${message%${message##*[![:space:]]}}"
+    printf "%s\n" "$message" 1>&2
+}
+
+die () {
+    warn "$@"
+    exit 1
+}
+
+###
+### main
+###
+
+_checkout_pr_branch () {
+    set -eu
+
+    local username
+    local branch
+
+    IFS=':' read -r username branch <<< "$1"
+
+    cd_to_project_root
+    is_git_dirty \
+        && die 'There are uncommitted changes; cannot proceed.'
+
+    git fetch "git@github.com:${username}/homebrew-cask.git" \
+        "refs/heads/${branch}"
+    git checkout FETCH_HEAD
+
+    echo "Checked out ${branch} from ${username}"
+}
+
+# process args
+if [[ $1 =~ ^-+h(elp)?$ ]]; then
+    printf "checkout_pr_branch <username>:<branch>
+
+Fetches a remote branch and checks out FETCH_HEAD
+temporarily.
+
+The argument follows the syntax of the GitHub PR page
+where it says:
+
+    [...] into caskroom:master from <username>:<branch>
+
+"
+    exit
+fi
+
+# dispatch main
+_checkout_pr_branch "${@}"
